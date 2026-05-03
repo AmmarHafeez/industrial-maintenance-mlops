@@ -8,18 +8,42 @@ sensor windows, train baseline models, evaluate held-out test engines, serve
 local model bundles, and generate lightweight monitoring outputs.
 
 ```mermaid
-flowchart LR
-    A["C-MAPSS raw text files"] --> B["Parser"]
-    B --> C["RUL labels"]
-    C --> D["Sensor windows"]
-    D --> E["Baseline training"]
-    E --> F["Model bundles"]
-    E --> G["Reference statistics"]
-    F --> H["Held-out evaluation"]
-    F --> I["FastAPI inference"]
-    G --> J["Drift report"]
-    I --> K["Prometheus metrics"]
+flowchart TD
+    A["Raw C-MAPSS data"] --> B["Data parser / preprocessing"]
+    B --> C["Window generation + RUL / risk targets"]
+    C --> D["Training pipeline"]
+    D --> E["Trained artifacts"]
+    E --> E1["RUL regressor"]
+    E --> E2["Failure-risk classifier"]
+    E --> E3["Reference stats"]
+    E1 --> F["Held-out test evaluation"]
+    E2 --> F
+    E3 --> G["Drift report workflow"]
+    E1 --> H["FastAPI inference service"]
+    E2 --> H
+    H --> I["API clients / users"]
 ```
+
+## Component Explanation
+
+- Raw C-MAPSS data: local NASA turbofan text files under
+  `data/raw/CMAPSSData/`.
+- Data parser / preprocessing: reads train, test, and RUL files into typed
+  tabular data.
+- Window generation + targets: creates fixed-length sensor windows, clipped RUL
+  targets, and failure-risk labels.
+- Training pipeline: fits baseline RUL regression and failure-risk
+  classification models with an engine-level validation split.
+- Trained artifacts: local joblib model bundles and reference statistics under
+  `models/`.
+- Held-out test evaluation: scores the final available test window per engine
+  against `RUL_FD001.txt`.
+- Drift report workflow: compares final test-engine window statistics with
+  training reference statistics.
+- FastAPI inference service: loads local model bundles and serves RUL,
+  failure-risk, batch, health, and metrics endpoints.
+- API clients / users: callers that submit validated sensor windows and consume
+  prediction responses.
 
 ## Package Areas
 

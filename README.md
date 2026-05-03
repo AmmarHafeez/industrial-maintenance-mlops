@@ -8,6 +8,19 @@ parsing C-MAPSS text files, training Remaining Useful Life (RUL) and
 failure-risk models, evaluating held-out test engines, serving predictions with
 FastAPI, and producing lightweight monitoring and drift reports.
 
+## Why This Matters
+
+Predictive maintenance helps teams move from reactive repairs toward planned
+maintenance decisions based on equipment condition and degradation signals.
+
+- RUL prediction estimates how much useful operation remains before failure.
+- Failure-risk classification gives a simpler high-risk signal for operational
+  decisions.
+- API serving makes trained models available to applications and monitoring
+  tools without coupling them to training code.
+- Evaluation and drift checks help separate model quality from data shift and
+  keep local results reproducible.
+
 ## Key Capabilities
 
 - Parse C-MAPSS train, test, and RUL text files.
@@ -186,6 +199,8 @@ Ignored local outputs include:
 - `reports/artifacts/`
 
 ## Documentation
+
+For a system overview, see [Architecture](docs/architecture.md).
 
 - [Architecture](docs/architecture.md)
 - [Reproducibility](docs/reproducibility.md)
