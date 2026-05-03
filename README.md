@@ -1,5 +1,7 @@
 # industrial-maintenance-mlops
 
+[![Tests](https://github.com/AmmarHafeez/industrial-maintenance-mlops/actions/workflows/tests.yml/badge.svg)](https://github.com/AmmarHafeez/industrial-maintenance-mlops/actions/workflows/tests.yml)
+
 Predictive maintenance MLOps-style project for NASA C-MAPSS turbofan engine
 degradation data. The repository demonstrates a reproducible local workflow for
 parsing C-MAPSS text files, training Remaining Useful Life (RUL) and
