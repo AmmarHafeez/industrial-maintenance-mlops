@@ -7,6 +7,7 @@ Training and evaluation runs write local metrics to:
 ```text
 reports/metrics/training_metrics_<dataset_id>.json
 reports/metrics/test_metrics_<dataset_id>.json
+reports/metrics/drift_report_<dataset_id>.json
 ```
 
 The metrics file is generated from the configured local dataset, engine-level train-validation split, window settings, RUL clipping value, failure-risk threshold, model configuration, and random seed. Generated metrics and benchmark outputs are ignored by Git.
@@ -32,6 +33,44 @@ python -m industrial_maintenance_mlops.evaluation.evaluate_cmapss `
 ```
 
 The command uses `test_FD001.txt` and `RUL_FD001.txt`, extracts the last fixed-length window for each test engine, and writes `reports/metrics/test_metrics_FD001.json`. Generated metrics JSON remains local under `reports/metrics/` and is ignored by Git.
+
+## Drift Reporting
+
+The project supports drift reporting with:
+
+```powershell
+python -m industrial_maintenance_mlops.monitoring.drift_report `
+  --dataset-id FD001 `
+  --raw-dir data/raw/CMAPSSData `
+  --reference-stats models/reference_stats.json `
+  --output reports/metrics/drift_report_FD001.json `
+  --window-size 30 `
+  --max-rul 125
+```
+
+The command compares final test-engine windows with training reference statistics and writes `reports/metrics/drift_report_FD001.json`.
+
+## FD001 Drift Report
+
+Dataset: NASA C-MAPSS FD001, with files placed locally under `data/raw/CMAPSSData/`.
+
+This drift report compared final test-engine windows against training reference statistics from `models/reference_stats.json`. It is a lightweight statistical drift check, not a full production monitoring system.
+
+Run configuration:
+
+- Window count: `100`
+- Feature count: `24`
+- `mean_z_threshold=3.0`
+- `std_ratio_threshold=2.0`
+- Generated local file: `reports/metrics/drift_report_FD001.json`
+
+Summary:
+
+| Metric | Value |
+| --- | ---: |
+| flagged_features | 0 |
+
+Zero flagged features means no feature exceeded the configured simple mean z-shift or standard-deviation ratio thresholds in this local FD001 run. The generated drift report JSON remains local under `reports/metrics/` and is ignored by Git.
 
 ## Held-Out FD001 Test Result
 

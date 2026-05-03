@@ -110,6 +110,24 @@ Latest held-out FD001 test-set metrics used 100 test engines and 100 final test-
 - RUL regression: MAE `12.0360`, RMSE `15.8548`, R2 `0.8435`
 - Failure-risk classification: accuracy `0.9800`, macro F1 `0.9733`, balanced accuracy `0.9733`, precision `0.9600`, recall `0.9600`
 
+## Drift Report
+
+After training has produced `models/reference_stats.json`, compare final test-engine windows against training reference statistics with:
+
+```powershell
+python -m industrial_maintenance_mlops.monitoring.drift_report `
+  --dataset-id FD001 `
+  --raw-dir data/raw/CMAPSSData `
+  --reference-stats models/reference_stats.json `
+  --output reports/metrics/drift_report_FD001.json `
+  --window-size 30 `
+  --max-rul 125
+```
+
+The report summarizes current test-window feature statistics, compares them with training reference mean and standard deviation, flags simple per-feature shifts, and writes `reports/metrics/drift_report_FD001.json`. Generated drift reports are ignored by Git.
+
+The latest local FD001 drift report compared 100 final test-engine windows against `models/reference_stats.json` with `mean_z_threshold=3.0` and `std_ratio_threshold=2.0`. It flagged `0` of 24 features. This is a lightweight statistical drift check, not a full production monitoring system.
+
 ## Local FD001 Validation Result
 
 The latest local FD001 run used `train_FD001.txt` for an engine-level train-validation split with 80 training engines and 20 validation engines. It produced 14,241 training windows and 3,490 validation windows with `window_size=30`, `stride=1`, `max_rul=125`, `risk_threshold=30`, and `random_state=42`.

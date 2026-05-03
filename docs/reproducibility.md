@@ -98,6 +98,30 @@ Generated evaluation metrics are ignored by Git.
 
 The documented FD001 held-out test-set result used 100 test engines, one final window per engine, `window_size=30`, `max_rul=125`, and `risk_threshold=30`. The model version was `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`.
 
+## Drift Report
+
+After local training has produced `models/reference_stats.json`, run:
+
+```powershell
+python -m industrial_maintenance_mlops.monitoring.drift_report `
+  --dataset-id FD001 `
+  --raw-dir data/raw/CMAPSSData `
+  --reference-stats models/reference_stats.json `
+  --output reports/metrics/drift_report_FD001.json `
+  --window-size 30 `
+  --max-rul 125
+```
+
+The command reads `test_FD001.txt`, extracts the final fixed-length window for each test engine, compares test-window feature statistics with training reference statistics, and writes:
+
+```text
+reports/metrics/drift_report_FD001.json
+```
+
+Generated drift reports are ignored by Git.
+
+The documented FD001 drift report compared 100 final test-engine windows against training reference statistics from `models/reference_stats.json`. With `mean_z_threshold=3.0` and `std_ratio_threshold=2.0`, it flagged 0 of 24 features.
+
 ## API Serving
 
 The API reads model artifact paths from `configs/api.yaml`:
