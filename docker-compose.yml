@@ -1,0 +1,13 @@
+services:
+  api:
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    environment:
+      API_CONFIG_PATH: /app/configs/api.yaml
+    volumes:
+      - ./data/raw:/app/data/raw:ro
+      - ./data/processed:/app/data/processed
+      - ./models:/app/models
+      - ./reports:/app/reports

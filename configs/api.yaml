@@ -1,0 +1,9 @@
+host: 0.0.0.0
+port: 8000
+model_version: local
+rul_model_path: models/rul_regressor.joblib
+failure_risk_model_path: models/failure_risk_classifier.joblib
+reference_stats_path: models/reference_stats.json
+window_size: 30
+feature_count: 24
+drift_z_threshold: 3.0

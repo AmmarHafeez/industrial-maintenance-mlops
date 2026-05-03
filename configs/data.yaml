@@ -1,0 +1,9 @@
+raw_data_dir: data/raw/CMAPSSData
+processed_data_dir: data/processed
+subset: FD001
+train_file: train_FD001.txt
+test_file: test_FD001.txt
+rul_file: RUL_FD001.txt
+max_rul: 125
+include_operational_settings: true
+include_sensors: true
