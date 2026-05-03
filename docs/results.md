@@ -23,7 +23,7 @@ This run used `train_FD001.txt` for an engine-level train-validation split. Thes
 
 Run configuration:
 
-- Model version: `FD001-win30-stride1-rul125-risk30-logistic-regression-seed42`
+- Model version: `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`
 - Training engines: `80`
 - Validation engines: `20`
 - Training windows: `14,241`
@@ -33,6 +33,8 @@ Run configuration:
 - `max_rul=125`
 - `risk_threshold=30`
 - `random_state=42`
+- `classifier_max_iter=2000`
+- Classifier: `StandardScaler` followed by `LogisticRegression`
 
 Regression validation metrics:
 
@@ -46,17 +48,17 @@ Failure-risk validation metrics:
 
 | Metric | Value |
 | --- | ---: |
-| accuracy | 0.9685 |
-| macro_f1 | 0.9464 |
-| balanced_accuracy | 0.9492 |
-| precision | 0.9048 |
-| recall | 0.9194 |
+| accuracy | 0.9673 |
+| macro_f1 | 0.9442 |
+| balanced_accuracy | 0.9447 |
+| precision | 0.9068 |
+| recall | 0.9097 |
 
 Confusion matrix:
 
 ```text
-[[2810, 60],
- [50, 570]]
+[[2812, 58],
+ [56, 564]]
 ```
 
-The LogisticRegression classifier produced a convergence warning during the run. Future work may add feature scaling or use another classifier setting. Raw data, processed data, models, and metrics JSON files are generated locally and ignored by Git.
+The earlier LogisticRegression convergence warning was addressed by adding `StandardScaler` before `LogisticRegression`. Raw data, processed data, models, and metrics JSON files are generated locally and ignored by Git.

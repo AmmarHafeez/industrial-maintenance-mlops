@@ -8,4 +8,4 @@ classification:
   failure_risk_threshold: 30
   n_estimators: 100
   max_depth: null
-  max_iter: 1000
+  max_iter: 2000

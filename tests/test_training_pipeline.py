@@ -8,6 +8,7 @@ import pytest
 from industrial_maintenance_mlops.data.parser import read_cmapss_file
 from industrial_maintenance_mlops.training.pipeline import (
     TrainingPipelineConfig,
+    build_model_version,
     run_training_with_config,
     split_engine_ids,
 )
@@ -54,6 +55,9 @@ def test_training_pipeline_runs_on_synthetic_data_and_writes_artifacts(
     assert config.metrics_path.exists()
     assert "regression" in report
     assert "classification" in report
+    assert "model_version" in metrics_payload
+    assert metrics_payload["configuration"]["classifier_estimator"] == "random_forest"
+    assert metrics_payload["configuration"]["classifier_max_iter"] == 2000
     assert set(metrics_payload["regression"]) == {"mae", "rmse", "r2"}
     assert {
         "accuracy",
@@ -84,3 +88,9 @@ def test_generated_artifact_paths_are_ignored_by_git():
     assert "models/" in ignore_text
     assert "reports/metrics/" in ignore_text
     assert "data/raw/" in ignore_text
+
+
+def test_model_version_names_scaled_logistic_regression():
+    config = TrainingPipelineConfig(classifier_estimator="logistic_regression")
+
+    assert "scaled-logistic-regression" in build_model_version(config)

@@ -44,7 +44,7 @@ Configuration lives in:
 - `configs/training.yaml`
 - `configs/api.yaml`
 
-The default RUL clipping value is `125`, and the default failure-risk threshold is `30`. Training uses deterministic `random_state` values where sklearn estimators support them.
+The default RUL clipping value is `125`, and the default failure-risk threshold is `30`. Training uses deterministic `random_state` values where sklearn estimators support them. The default failure-risk classifier is a scaled logistic-regression sklearn pipeline.
 
 ## Training Run
 
@@ -82,9 +82,10 @@ The documented FD001 validation result used:
 - 80 training engines and 20 validation engines
 - 14,241 training windows and 3,490 validation windows
 - `window_size=30`, `stride=1`, `max_rul=125`, `risk_threshold=30`, `random_state=42`
-- Model version `FD001-win30-stride1-rul125-risk30-logistic-regression-seed42`
+- `classifier_max_iter=2000`
+- Model version `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`
 
-The LogisticRegression classifier produced a convergence warning during the run. Future work may add feature scaling or use another classifier setting.
+The classifier uses `StandardScaler` before `LogisticRegression`. The earlier LogisticRegression convergence warning was addressed by adding this scaling step.
 
 ## Test Data
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 def train_random_forest_regressor(
@@ -36,9 +38,9 @@ def train_failure_classifier(
     estimator: str = "logistic_regression",
     n_estimators: int = 100,
     max_depth: int | None = None,
-    max_iter: int = 1000,
+    max_iter: int = 2000,
     random_state: int = 42,
-) -> LogisticRegression | RandomForestClassifier:
+) -> Pipeline | RandomForestClassifier:
     """Train a baseline classifier for near-failure risk."""
     features = np.asarray(X, dtype=float)
     targets = np.asarray(y, dtype=int)
@@ -50,7 +52,7 @@ def train_failure_classifier(
         raise ValueError("Failure-risk classifier requires at least two classes")
 
     if estimator == "logistic_regression":
-        model: LogisticRegression | RandomForestClassifier = LogisticRegression(
+        model: Pipeline | RandomForestClassifier = _build_scaled_logistic_regression(
             max_iter=max_iter,
             random_state=random_state,
         )
@@ -66,3 +68,18 @@ def train_failure_classifier(
 
     model.fit(features, targets)
     return model
+
+
+def _build_scaled_logistic_regression(max_iter: int, random_state: int) -> Pipeline:
+    return Pipeline(
+        steps=[
+            ("scaler", StandardScaler()),
+            (
+                "classifier",
+                LogisticRegression(
+                    max_iter=max_iter,
+                    random_state=random_state,
+                ),
+            ),
+        ]
+    )

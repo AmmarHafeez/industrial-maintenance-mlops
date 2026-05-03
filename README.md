@@ -86,16 +86,22 @@ These outputs are intentionally ignored by Git.
 
 The training workflow uses an engine-level train-validation split, so windows from the same engine are not split across training and validation sets. The validation metrics are written to `reports/metrics/training_metrics_FD001.json` for the command above.
 
+The default failure-risk classifier uses `StandardScaler` followed by `LogisticRegression` inside an sklearn pipeline. Random forest classification remains available through configuration.
+
 ## Local FD001 Validation Result
 
 The latest local FD001 run used `train_FD001.txt` for an engine-level train-validation split with 80 training engines and 20 validation engines. It produced 14,241 training windows and 3,490 validation windows with `window_size=30`, `stride=1`, `max_rul=125`, `risk_threshold=30`, and `random_state=42`.
 
+Model version: `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`. The classifier used `StandardScaler` followed by `LogisticRegression` with `classifier_max_iter=2000`.
+
 Validation metrics:
 
 - RUL regression: MAE `12.0684`, RMSE `15.9273`, R2 `0.8545`
-- Failure-risk classification: accuracy `0.9685`, macro F1 `0.9464`, balanced accuracy `0.9492`, precision `0.9048`, recall `0.9194`
+- Failure-risk classification: accuracy `0.9673`, macro F1 `0.9442`, balanced accuracy `0.9447`, precision `0.9068`, recall `0.9097`
 
 These are engine-level validation results, not official held-out test-set benchmark results. Raw data, processed data, models, and metrics JSON files are generated locally and ignored by Git.
+
+The earlier LogisticRegression convergence warning was addressed by adding `StandardScaler` before `LogisticRegression`.
 
 ## API
 

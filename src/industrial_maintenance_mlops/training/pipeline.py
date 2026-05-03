@@ -57,7 +57,7 @@ class TrainingPipelineConfig:
     regressor_max_depth: int | None = None
     classifier_n_estimators: int = 100
     classifier_max_depth: int | None = None
-    classifier_max_iter: int = 1000
+    classifier_max_iter: int = 2000
 
     @property
     def train_file(self) -> Path:
@@ -159,7 +159,7 @@ def build_training_config(
         regressor_max_depth=regression_config.get("max_depth"),
         classifier_n_estimators=int(classification_config.get("n_estimators", 100)),
         classifier_max_depth=classification_config.get("max_depth"),
-        classifier_max_iter=int(classification_config.get("max_iter", 1000)),
+        classifier_max_iter=int(classification_config.get("max_iter", 2000)),
     )
 
 
@@ -263,6 +263,8 @@ def run_training_with_config(config: TrainingPipelineConfig) -> dict[str, Any]:
             window_size=windows.X.shape[1],
             metadata={
                 "dataset_id": config.dataset_id,
+                "classifier_estimator": config.classifier_estimator,
+                "classifier_max_iter": config.classifier_max_iter,
                 "failure_risk_threshold": config.risk_threshold,
             },
         ),
@@ -355,12 +357,18 @@ def window_indices_for_engine_split(
 
 
 def build_model_version(config: TrainingPipelineConfig) -> str:
-    classifier_name = config.classifier_estimator.replace("_", "-")
+    classifier_name = classifier_version_name(config.classifier_estimator)
     return (
         f"{config.dataset_id}-win{config.window_size}-stride{config.stride}"
         f"-rul{config.max_rul}-risk{config.risk_threshold}"
         f"-{classifier_name}-seed{config.random_state}"
     )
+
+
+def classifier_version_name(estimator: str) -> str:
+    if estimator == "logistic_regression":
+        return "scaled-logistic-regression"
+    return estimator.replace("_", "-")
 
 
 def build_metrics_report(
