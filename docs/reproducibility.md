@@ -11,6 +11,12 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+Because the package uses a `src` layout, run commands after either installing the package in editable mode or setting `PYTHONPATH` in PowerShell:
+
+```powershell
+$env:PYTHONPATH = (Resolve-Path .\src).Path
+```
+
 ## Data
 
 Raw NASA C-MAPSS / Turbofan Engine Degradation Simulation text files are not committed to this repository. Place the extracted files under:
@@ -66,6 +72,19 @@ Expected local outputs:
 - `reports/metrics/training_metrics_FD001.json`
 
 These generated outputs are ignored by Git.
+
+## Local FD001 Run
+
+The documented FD001 validation result used:
+
+- Dataset files under `data/raw/CMAPSSData/`
+- `train_FD001.txt` for an engine-level train-validation split
+- 80 training engines and 20 validation engines
+- 14,241 training windows and 3,490 validation windows
+- `window_size=30`, `stride=1`, `max_rul=125`, `risk_threshold=30`, `random_state=42`
+- Model version `FD001-win30-stride1-rul125-risk30-logistic-regression-seed42`
+
+The LogisticRegression classifier produced a convergence warning during the run. Future work may add feature scaling or use another classifier setting.
 
 ## Test Data
 

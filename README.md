@@ -53,6 +53,12 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+For the `src` layout, either install the package in editable mode as shown above or set `PYTHONPATH` before running `python -m` commands:
+
+```powershell
+$env:PYTHONPATH = (Resolve-Path .\src).Path
+```
+
 ## Training
 
 After placing the raw C-MAPSS files in `data/raw/CMAPSSData/`, run:
@@ -79,6 +85,17 @@ Training outputs are written locally:
 These outputs are intentionally ignored by Git.
 
 The training workflow uses an engine-level train-validation split, so windows from the same engine are not split across training and validation sets. The validation metrics are written to `reports/metrics/training_metrics_FD001.json` for the command above.
+
+## Local FD001 Validation Result
+
+The latest local FD001 run used `train_FD001.txt` for an engine-level train-validation split with 80 training engines and 20 validation engines. It produced 14,241 training windows and 3,490 validation windows with `window_size=30`, `stride=1`, `max_rul=125`, `risk_threshold=30`, and `random_state=42`.
+
+Validation metrics:
+
+- RUL regression: MAE `12.0684`, RMSE `15.9273`, R2 `0.8545`
+- Failure-risk classification: accuracy `0.9685`, macro F1 `0.9464`, balanced accuracy `0.9492`, precision `0.9048`, recall `0.9194`
+
+These are engine-level validation results, not official held-out test-set benchmark results. Raw data, processed data, models, and metrics JSON files are generated locally and ignored by Git.
 
 ## API
 
