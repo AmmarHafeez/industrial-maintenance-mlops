@@ -25,3 +25,33 @@ def tiny_cmapss_file(tmp_path: Path) -> Path:
     path = tmp_path / "train_FD001.txt"
     path.write_text("\n".join(rows) + "\n", encoding="utf-8")
     return path
+
+
+@pytest.fixture
+def tiny_cmapss_dataset_dir(tmp_path: Path) -> Path:
+    raw_dir = tmp_path / "CMAPSSData"
+    raw_dir.mkdir()
+    train_rows: list[str] = []
+    test_rows: list[str] = []
+    for unit_number in range(1, 6):
+        for cycle in range(1, 6):
+            train_rows.append(
+                make_cmapss_row(
+                    unit_number,
+                    cycle,
+                    sensor_offset=float(unit_number * 10),
+                )
+            )
+        for cycle in range(1, 4):
+            test_rows.append(
+                make_cmapss_row(
+                    unit_number,
+                    cycle,
+                    sensor_offset=float(unit_number * 10),
+                )
+            )
+
+    (raw_dir / "train_FD001.txt").write_text("\n".join(train_rows) + "\n", encoding="utf-8")
+    (raw_dir / "test_FD001.txt").write_text("\n".join(test_rows) + "\n", encoding="utf-8")
+    (raw_dir / "RUL_FD001.txt").write_text("2\n2\n2\n2\n2\n", encoding="utf-8")
+    return raw_dir

@@ -58,7 +58,17 @@ pip install -e .
 After placing the raw C-MAPSS files in `data/raw/CMAPSSData/`, run:
 
 ```powershell
-python -m industrial_maintenance_mlops.training.pipeline --config-dir configs
+python -m industrial_maintenance_mlops.training.pipeline `
+  --dataset-id FD001 `
+  --raw-dir data/raw/CMAPSSData `
+  --models-dir models `
+  --metrics-dir reports/metrics `
+  --window-size 30 `
+  --stride 1 `
+  --max-rul 125 `
+  --risk-threshold 30 `
+  --test-size 0.2 `
+  --random-state 42
 ```
 
 Training outputs are written locally:
@@ -67,6 +77,8 @@ Training outputs are written locally:
 - Metrics: `reports/metrics/`
 
 These outputs are intentionally ignored by Git.
+
+The training workflow uses an engine-level train-validation split, so windows from the same engine are not split across training and validation sets. The validation metrics are written to `reports/metrics/training_metrics_FD001.json` for the command above.
 
 ## API
 
