@@ -16,8 +16,24 @@ class BatchPredictionRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class PredictionResponse(BaseModel):
+class RulPredictionResponse(BaseModel):
     model_version: str
-    prediction: Any
+    predicted_rul: float
     latency_ms: float
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    input_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class FailureRiskPredictionResponse(BaseModel):
+    model_version: str
+    failure_risk_probability: float | None
+    predicted_high_risk: bool
+    latency_ms: float
+    input_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class BatchPredictionResponse(BaseModel):
+    model_version: str
+    model_type: Literal["rul", "failure-risk"]
+    predictions: list[Any]
+    latency_ms: float
+    input_metadata: dict[str, Any] = Field(default_factory=dict)

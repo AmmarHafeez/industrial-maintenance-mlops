@@ -12,9 +12,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from industrial_maintenance_mlops.api.schemas import (
+    BatchPredictionResponse,
     BatchPredictionRequest,
+    FailureRiskPredictionResponse,
     PredictionRequest,
-    PredictionResponse,
+    RulPredictionResponse,
 )
 from industrial_maintenance_mlops.inference.predictor import (
     InvalidWindowShapeError,
@@ -35,9 +37,9 @@ configure_logging()
 @dataclass(frozen=True)
 class ApiSettings:
     model_version: str = "local"
-    rul_model_path: str = "models/rul_regressor.joblib"
-    failure_risk_model_path: str = "models/failure_risk_classifier.joblib"
-    reference_stats_path: str = "models/reference_stats.json"
+    rul_model_path: Path = Path("models/rul_regressor.joblib")
+    failure_risk_model_path: Path = Path("models/failure_risk_classifier.joblib")
+    reference_stats_path: Path = Path("models/reference_stats.json")
     window_size: int = 30
     feature_count: int = 24
     drift_z_threshold: float = 3.0
@@ -46,14 +48,31 @@ class ApiSettings:
     def from_mapping(cls, values: dict[str, Any]) -> "ApiSettings":
         return cls(
             model_version=str(values.get("model_version", cls.model_version)),
-            rul_model_path=str(values.get("rul_model_path", cls.rul_model_path)),
-            failure_risk_model_path=str(
+            rul_model_path=Path(values.get("rul_model_path", cls.rul_model_path)),
+            failure_risk_model_path=Path(
                 values.get("failure_risk_model_path", cls.failure_risk_model_path)
             ),
-            reference_stats_path=str(values.get("reference_stats_path", cls.reference_stats_path)),
+            reference_stats_path=Path(
+                values.get("reference_stats_path", cls.reference_stats_path)
+            ),
             window_size=int(values.get("window_size", cls.window_size)),
             feature_count=int(values.get("feature_count", cls.feature_count)),
             drift_z_threshold=float(values.get("drift_z_threshold", cls.drift_z_threshold)),
+        )
+
+    def with_env_overrides(self) -> "ApiSettings":
+        return ApiSettings(
+            model_version=os.environ.get("API_MODEL_VERSION", self.model_version),
+            rul_model_path=Path(os.environ.get("RUL_MODEL_PATH", str(self.rul_model_path))),
+            failure_risk_model_path=Path(
+                os.environ.get("FAILURE_RISK_MODEL_PATH", str(self.failure_risk_model_path))
+            ),
+            reference_stats_path=Path(
+                os.environ.get("REFERENCE_STATS_PATH", str(self.reference_stats_path))
+            ),
+            window_size=int(os.environ.get("API_WINDOW_SIZE", self.window_size)),
+            feature_count=int(os.environ.get("API_FEATURE_COUNT", self.feature_count)),
+            drift_z_threshold=float(os.environ.get("DRIFT_Z_THRESHOLD", self.drift_z_threshold)),
         )
 
 
@@ -82,6 +101,7 @@ def create_app(
     application.state.prediction_service = service
     application.state.drift_detector = detector
     application.state.metrics = app_metrics
+    application.state.settings = settings
 
     @application.middleware("http")
     async def record_http_requests(request: Request, call_next: Any) -> Response:
@@ -99,10 +119,21 @@ def create_app(
 
     @application.get("/health")
     def health() -> dict[str, object]:
-        return {"status": "ok", "models": service.health()}
+        model_health = service.health()
+        return {
+            "status": "ok",
+            "ready": bool(model_health["ready"]),
+            "models": model_health,
+            "reference_stats_loaded": detector.reference_stats is not None,
+            "artifact_paths": {
+                "rul_model_path": str(settings.rul_model_path),
+                "failure_risk_model_path": str(settings.failure_risk_model_path),
+                "reference_stats_path": str(settings.reference_stats_path),
+            },
+        }
 
-    @application.post("/predict/rul", response_model=PredictionResponse)
-    def predict_rul(payload: PredictionRequest) -> PredictionResponse:
+    @application.post("/predict/rul", response_model=RulPredictionResponse)
+    def predict_rul(payload: PredictionRequest) -> RulPredictionResponse:
         started = time.perf_counter()
         try:
             prediction = service.predict_rul(payload.sensor_window)
@@ -115,15 +146,15 @@ def create_app(
         elapsed = time.perf_counter() - started
         app_metrics.record_prediction("rul")
         app_metrics.record_latency("/predict/rul", elapsed)
-        return PredictionResponse(
+        return RulPredictionResponse(
             model_version=service.model_version_for("rul"),
-            prediction=prediction,
+            predicted_rul=prediction,
             latency_ms=elapsed * 1000,
-            metadata=_metadata_with_drift(payload.metadata, payload.sensor_window, detector),
+            input_metadata=_metadata_with_drift(payload.metadata, payload.sensor_window, detector),
         )
 
-    @application.post("/predict/failure-risk", response_model=PredictionResponse)
-    def predict_failure_risk(payload: PredictionRequest) -> PredictionResponse:
+    @application.post("/predict/failure-risk", response_model=FailureRiskPredictionResponse)
+    def predict_failure_risk(payload: PredictionRequest) -> FailureRiskPredictionResponse:
         started = time.perf_counter()
         try:
             prediction = service.predict_failure_risk(payload.sensor_window)
@@ -136,15 +167,16 @@ def create_app(
         elapsed = time.perf_counter() - started
         app_metrics.record_prediction("failure-risk")
         app_metrics.record_latency("/predict/failure-risk", elapsed)
-        return PredictionResponse(
+        return FailureRiskPredictionResponse(
             model_version=service.model_version_for("failure-risk"),
-            prediction=prediction,
+            failure_risk_probability=prediction["failure_risk_probability"],
+            predicted_high_risk=prediction["predicted_high_risk"],
             latency_ms=elapsed * 1000,
-            metadata=_metadata_with_drift(payload.metadata, payload.sensor_window, detector),
+            input_metadata=_metadata_with_drift(payload.metadata, payload.sensor_window, detector),
         )
 
-    @application.post("/predict/batch", response_model=PredictionResponse)
-    def predict_batch(payload: BatchPredictionRequest) -> PredictionResponse:
+    @application.post("/predict/batch", response_model=BatchPredictionResponse)
+    def predict_batch(payload: BatchPredictionRequest) -> BatchPredictionResponse:
         started = time.perf_counter()
         try:
             prediction = service.predict_batch(payload.sensor_windows, payload.model_type)
@@ -157,11 +189,12 @@ def create_app(
         elapsed = time.perf_counter() - started
         app_metrics.record_prediction(payload.model_type)
         app_metrics.record_latency("/predict/batch", elapsed)
-        return PredictionResponse(
+        return BatchPredictionResponse(
             model_version=service.model_version_for(payload.model_type),
-            prediction=prediction,
+            model_type=payload.model_type,
+            predictions=prediction,
             latency_ms=elapsed * 1000,
-            metadata=payload.metadata,
+            input_metadata=payload.metadata,
         )
 
     @application.get("/metrics")
@@ -174,8 +207,8 @@ def create_app(
 def load_api_settings() -> ApiSettings:
     config_path = Path(os.environ.get("API_CONFIG_PATH", "configs/api.yaml"))
     if not config_path.exists():
-        return ApiSettings()
-    return ApiSettings.from_mapping(load_yaml(config_path))
+        return ApiSettings().with_env_overrides()
+    return ApiSettings.from_mapping(load_yaml(config_path)).with_env_overrides()
 
 
 def _load_drift_detector(settings: ApiSettings) -> DriftDetector:

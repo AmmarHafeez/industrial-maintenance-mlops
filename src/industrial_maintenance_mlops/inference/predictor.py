@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Literal
 
@@ -7,6 +8,8 @@ import numpy as np
 
 from industrial_maintenance_mlops.features.windowing import flatten_windows
 from industrial_maintenance_mlops.models.persistence import ModelBundle, load_model_bundle
+
+LOGGER = logging.getLogger(__name__)
 
 
 class InvalidWindowShapeError(ValueError):
@@ -52,23 +55,32 @@ class PredictionService:
         )
 
     def health(self) -> dict[str, object]:
+        ready = self.rul_model is not None and self.failure_model is not None
         return {
+            "ready": ready,
             "rul_model_loaded": self.rul_model is not None,
             "failure_risk_model_loaded": self.failure_model is not None,
             "default_window_size": self.default_window_size,
             "default_feature_count": self.default_feature_count,
+            "rul_model_version": self.rul_model.version if self.rul_model else None,
+            "failure_risk_model_version": self.failure_model.version if self.failure_model else None,
         }
 
     def predict_rul(self, sensor_window: list[list[float]] | np.ndarray) -> float:
         if self.rul_model is None:
-            raise ModelNotLoadedError("RUL model is not loaded")
+            raise ModelNotLoadedError(
+                "RUL model artifact is unavailable; train models locally or configure RUL_MODEL_PATH"
+            )
         array = self.validate_window(sensor_window, self.rul_model)
         prediction = self.rul_model.model.predict(flatten_windows(array[np.newaxis, :, :]))
         return float(prediction[0])
 
     def predict_failure_risk(self, sensor_window: list[list[float]] | np.ndarray) -> dict[str, Any]:
         if self.failure_model is None:
-            raise ModelNotLoadedError("Failure-risk model is not loaded")
+            raise ModelNotLoadedError(
+                "Failure-risk model artifact is unavailable; train models locally or configure "
+                "FAILURE_RISK_MODEL_PATH"
+            )
         array = self.validate_window(sensor_window, self.failure_model)
         flat = flatten_windows(array[np.newaxis, :, :])
 
@@ -77,12 +89,15 @@ class PredictionService:
             classes = list(getattr(self.failure_model.model, "classes_", range(len(probabilities))))
             positive_index = classes.index(1) if 1 in classes else len(probabilities) - 1
             probability = float(probabilities[positive_index])
-            label = int(probability >= 0.5)
+            predicted_high_risk = bool(probability >= 0.5)
         else:
-            label = int(self.failure_model.model.predict(flat)[0])
+            predicted_high_risk = bool(self.failure_model.model.predict(flat)[0])
             probability = None
 
-        return {"label": label, "probability": probability}
+        return {
+            "failure_risk_probability": probability,
+            "predicted_high_risk": predicted_high_risk,
+        }
 
     def predict_batch(
         self,
@@ -130,5 +145,6 @@ class PredictionService:
 def _load_optional_bundle(path: str | Path) -> ModelBundle | None:
     model_path = Path(path)
     if not model_path.exists():
+        LOGGER.warning("Model artifact is unavailable: %s", model_path)
         return None
     return load_model_bundle(model_path)

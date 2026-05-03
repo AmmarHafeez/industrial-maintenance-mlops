@@ -105,10 +105,26 @@ The earlier LogisticRegression convergence warning was addressed by adding `Stan
 
 ## API
 
+After training, the API loads local artifacts from `configs/api.yaml` by default:
+
+```text
+models/rul_regressor.joblib
+models/failure_risk_classifier.joblib
+models/reference_stats.json
+```
+
+These files are generated locally and ignored by Git. The API still starts if model files are missing; `/health` reports `ready=false`, and prediction endpoints return a service error until model artifacts are available.
+
 Start the FastAPI service after models have been trained:
 
 ```powershell
 uvicorn industrial_maintenance_mlops.api.app:app --host 0.0.0.0 --port 8000
+```
+
+Check readiness:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health
 ```
 
 Endpoints:
@@ -126,6 +142,36 @@ window_size x feature_count
 ```
 
 The default API configuration expects `30 x 24` windows when no model metadata is loaded.
+
+Single-window RUL prediction:
+
+```powershell
+$payload = @{
+  sensor_window = $window
+  metadata = @{ unit_number = 1 }
+} | ConvertTo-Json -Depth 6
+
+Invoke-RestMethod http://localhost:8000/predict/rul -Method Post -Body $payload -ContentType "application/json"
+```
+
+Single-window failure-risk prediction:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/predict/failure-risk -Method Post -Body $payload -ContentType "application/json"
+```
+
+Batch prediction:
+
+```powershell
+$batchPayload = @{
+  model_type = "rul"
+  sensor_windows = @($window, $window)
+} | ConvertTo-Json -Depth 6
+
+Invoke-RestMethod http://localhost:8000/predict/batch -Method Post -Body $batchPayload -ContentType "application/json"
+```
+
+Model paths can also be overridden with environment variables such as `RUL_MODEL_PATH`, `FAILURE_RISK_MODEL_PATH`, and `REFERENCE_STATS_PATH`.
 
 ## Docker
 

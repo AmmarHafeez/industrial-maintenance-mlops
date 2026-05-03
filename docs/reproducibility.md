@@ -73,6 +73,32 @@ Expected local outputs:
 
 These generated outputs are ignored by Git.
 
+## API Serving
+
+The API reads model artifact paths from `configs/api.yaml`:
+
+```text
+models/rul_regressor.joblib
+models/failure_risk_classifier.joblib
+models/reference_stats.json
+```
+
+Start the service after local training has produced those files:
+
+```powershell
+uvicorn industrial_maintenance_mlops.api.app:app --host 0.0.0.0 --port 8000
+```
+
+Check readiness:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health
+```
+
+The service starts even when model artifacts are missing. In that case, `/health` returns `ready=false`, and prediction endpoints return a service error until models are trained or paths are configured. Override paths with `RUL_MODEL_PATH`, `FAILURE_RISK_MODEL_PATH`, and `REFERENCE_STATS_PATH` when needed.
+
+Prediction requests must provide a numeric `sensor_window` with the model window shape. For the default FD001 training settings, this is `30 x 24`.
+
 ## Local FD001 Run
 
 The documented FD001 validation result used:
