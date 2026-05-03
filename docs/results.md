@@ -2,10 +2,11 @@
 
 No generated metrics JSON files are committed with the repository.
 
-Training runs write local metrics to:
+Training and evaluation runs write local metrics to:
 
 ```text
 reports/metrics/training_metrics_<dataset_id>.json
+reports/metrics/test_metrics_<dataset_id>.json
 ```
 
 The metrics file is generated from the configured local dataset, engine-level train-validation split, window settings, RUL clipping value, failure-risk threshold, model configuration, and random seed. Generated metrics and benchmark outputs are ignored by Git.
@@ -14,6 +15,63 @@ Expected metric sections:
 
 - RUL regression: `mae`, `rmse`, `r2`
 - Failure-risk classification: `accuracy`, `macro_f1`, `balanced_accuracy`, `precision`, `recall`, `confusion_matrix`
+
+## Held-Out Test Evaluation
+
+The project supports held-out C-MAPSS test-set evaluation with:
+
+```powershell
+python -m industrial_maintenance_mlops.evaluation.evaluate_cmapss `
+  --dataset-id FD001 `
+  --raw-dir data/raw/CMAPSSData `
+  --models-dir models `
+  --metrics-dir reports/metrics `
+  --window-size 30 `
+  --max-rul 125 `
+  --risk-threshold 30
+```
+
+The command uses `test_FD001.txt` and `RUL_FD001.txt`, extracts the last fixed-length window for each test engine, and writes `reports/metrics/test_metrics_FD001.json`. Generated metrics JSON remains local under `reports/metrics/` and is ignored by Git.
+
+## Held-Out FD001 Test Result
+
+Dataset: NASA C-MAPSS FD001, with files placed locally under `data/raw/CMAPSSData/`.
+
+This evaluation used `test_FD001.txt` and `RUL_FD001.txt`. It scores one final available `30 x 24` window per test engine, so the run used 100 test engines and 100 final test-engine windows.
+
+Run configuration:
+
+- Model version: `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`
+- Test engines: `100`
+- Final test-engine windows: `100`
+- `window_size=30`
+- `max_rul=125`
+- `risk_threshold=30`
+
+Regression test metrics:
+
+| Metric | Value |
+| --- | ---: |
+| MAE | 12.0360 |
+| RMSE | 15.8548 |
+| R2 | 0.8435 |
+
+Failure-risk test metrics:
+
+| Metric | Value |
+| --- | ---: |
+| accuracy | 0.9800 |
+| macro_f1 | 0.9733 |
+| balanced_accuracy | 0.9733 |
+| precision | 0.9600 |
+| recall | 0.9600 |
+
+Confusion matrix:
+
+```text
+[[74, 1],
+ [1, 24]]
+```
 
 ## Local FD001 Validation
 

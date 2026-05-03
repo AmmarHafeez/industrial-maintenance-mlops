@@ -73,6 +73,31 @@ Expected local outputs:
 
 These generated outputs are ignored by Git.
 
+## Held-Out Test Evaluation
+
+After local training has produced model bundles under `models/`, run:
+
+```powershell
+python -m industrial_maintenance_mlops.evaluation.evaluate_cmapss `
+  --dataset-id FD001 `
+  --raw-dir data/raw/CMAPSSData `
+  --models-dir models `
+  --metrics-dir reports/metrics `
+  --window-size 30 `
+  --max-rul 125 `
+  --risk-threshold 30
+```
+
+The evaluation command reads `test_FD001.txt` and `RUL_FD001.txt`, extracts the last fixed-length window for each test engine, clips true final RUL with `max_rul`, derives high-risk labels from `risk_threshold`, and writes:
+
+```text
+reports/metrics/test_metrics_FD001.json
+```
+
+Generated evaluation metrics are ignored by Git.
+
+The documented FD001 held-out test-set result used 100 test engines, one final window per engine, `window_size=30`, `max_rul=125`, and `risk_threshold=30`. The model version was `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`.
+
 ## API Serving
 
 The API reads model artifact paths from `configs/api.yaml`:

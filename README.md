@@ -88,6 +88,28 @@ The training workflow uses an engine-level train-validation split, so windows fr
 
 The default failure-risk classifier uses `StandardScaler` followed by `LogisticRegression` inside an sklearn pipeline. Random forest classification remains available through configuration.
 
+## Held-Out Test Evaluation
+
+After local training has produced model files under `models/`, evaluate the C-MAPSS test set with:
+
+```powershell
+python -m industrial_maintenance_mlops.evaluation.evaluate_cmapss `
+  --dataset-id FD001 `
+  --raw-dir data/raw/CMAPSSData `
+  --models-dir models `
+  --metrics-dir reports/metrics `
+  --window-size 30 `
+  --max-rul 125 `
+  --risk-threshold 30
+```
+
+The command loads `test_FD001.txt` and `RUL_FD001.txt`, extracts the final fixed-length window for each test engine, scores against clipped final RUL labels, and writes `reports/metrics/test_metrics_FD001.json`. Generated test metrics are ignored by Git.
+
+Latest held-out FD001 test-set metrics used 100 test engines and 100 final test-engine windows:
+
+- RUL regression: MAE `12.0360`, RMSE `15.8548`, R2 `0.8435`
+- Failure-risk classification: accuracy `0.9800`, macro F1 `0.9733`, balanced accuracy `0.9733`, precision `0.9600`, recall `0.9600`
+
 ## Local FD001 Validation Result
 
 The latest local FD001 run used `train_FD001.txt` for an engine-level train-validation split with 80 training engines and 20 validation engines. It produced 14,241 training windows and 3,490 validation windows with `window_size=30`, `stride=1`, `max_rul=125`, `risk_threshold=30`, and `random_state=42`.
