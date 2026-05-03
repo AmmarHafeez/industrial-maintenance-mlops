@@ -1,8 +1,6 @@
 # Results
 
-No generated metrics JSON files are committed with the repository.
-
-Training and evaluation runs write local metrics to:
+Generated metrics JSON files are not committed. Local runs write metrics under:
 
 ```text
 reports/metrics/training_metrics_<dataset_id>.json
@@ -10,76 +8,64 @@ reports/metrics/test_metrics_<dataset_id>.json
 reports/metrics/drift_report_<dataset_id>.json
 ```
 
-The metrics file is generated from the configured local dataset, engine-level train-validation split, window settings, RUL clipping value, failure-risk threshold, model configuration, and random seed. Generated metrics and benchmark outputs are ignored by Git.
+The sections below document real local FD001 runs. Validation, held-out test-set
+evaluation, and drift reporting are separate workflows and should not be
+compared as if they measure the same behavior.
 
-Expected metric sections:
+## FD001 Engine-Level Validation
 
-- RUL regression: `mae`, `rmse`, `r2`
-- Failure-risk classification: `accuracy`, `macro_f1`, `balanced_accuracy`, `precision`, `recall`, `confusion_matrix`
-
-## Held-Out Test Evaluation
-
-The project supports held-out C-MAPSS test-set evaluation with:
-
-```powershell
-python -m industrial_maintenance_mlops.evaluation.evaluate_cmapss `
-  --dataset-id FD001 `
-  --raw-dir data/raw/CMAPSSData `
-  --models-dir models `
-  --metrics-dir reports/metrics `
-  --window-size 30 `
-  --max-rul 125 `
-  --risk-threshold 30
-```
-
-The command uses `test_FD001.txt` and `RUL_FD001.txt`, extracts the last fixed-length window for each test engine, and writes `reports/metrics/test_metrics_FD001.json`. Generated metrics JSON remains local under `reports/metrics/` and is ignored by Git.
-
-## Drift Reporting
-
-The project supports drift reporting with:
-
-```powershell
-python -m industrial_maintenance_mlops.monitoring.drift_report `
-  --dataset-id FD001 `
-  --raw-dir data/raw/CMAPSSData `
-  --reference-stats models/reference_stats.json `
-  --output reports/metrics/drift_report_FD001.json `
-  --window-size 30 `
-  --max-rul 125
-```
-
-The command compares final test-engine windows with training reference statistics and writes `reports/metrics/drift_report_FD001.json`.
-
-## FD001 Drift Report
-
-Dataset: NASA C-MAPSS FD001, with files placed locally under `data/raw/CMAPSSData/`.
-
-This drift report compared final test-engine windows against training reference statistics from `models/reference_stats.json`. It is a lightweight statistical drift check, not a full production monitoring system.
+Validation uses `train_FD001.txt` with an engine-level train-validation split.
+Windows from the same engine are not split across training and validation.
 
 Run configuration:
 
-- Window count: `100`
-- Feature count: `24`
-- `mean_z_threshold=3.0`
-- `std_ratio_threshold=2.0`
-- Generated local file: `reports/metrics/drift_report_FD001.json`
+- Dataset: NASA C-MAPSS FD001
+- Model version: `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`
+- Training engines: `80`
+- Validation engines: `20`
+- Training windows: `14,241`
+- Validation windows: `3,490`
+- `window_size=30`
+- `stride=1`
+- `max_rul=125`
+- `risk_threshold=30`
+- `random_state=42`
+- Classifier: `StandardScaler` followed by `LogisticRegression`
+- `classifier_max_iter=2000`
 
-Summary:
+Regression validation metrics:
 
 | Metric | Value |
 | --- | ---: |
-| flagged_features | 0 |
+| MAE | 12.0684 |
+| RMSE | 15.9273 |
+| R2 | 0.8545 |
 
-Zero flagged features means no feature exceeded the configured simple mean z-shift or standard-deviation ratio thresholds in this local FD001 run. The generated drift report JSON remains local under `reports/metrics/` and is ignored by Git.
+Failure-risk validation metrics:
 
-## Held-Out FD001 Test Result
+| Metric | Value |
+| --- | ---: |
+| accuracy | 0.9673 |
+| macro_f1 | 0.9442 |
+| balanced_accuracy | 0.9447 |
+| precision | 0.9068 |
+| recall | 0.9097 |
 
-Dataset: NASA C-MAPSS FD001, with files placed locally under `data/raw/CMAPSSData/`.
+Confusion matrix:
 
-This evaluation used `test_FD001.txt` and `RUL_FD001.txt`. It scores one final available `30 x 24` window per test engine, so the run used 100 test engines and 100 final test-engine windows.
+```text
+[[2812, 58],
+ [56, 564]]
+```
+
+## FD001 Held-Out Test Set
+
+Held-out test evaluation uses `test_FD001.txt` and `RUL_FD001.txt`. It scores
+the final available `30 x 24` window for each test engine.
 
 Run configuration:
 
+- Dataset: NASA C-MAPSS FD001
 - Model version: `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`
 - Test engines: `100`
 - Final test-engine windows: `100`
@@ -112,50 +98,31 @@ Confusion matrix:
  [1, 24]]
 ```
 
-## Local FD001 Validation
+## FD001 Drift Report
 
-Dataset: NASA C-MAPSS FD001, with files placed locally under `data/raw/CMAPSSData/`.
-
-This run used `train_FD001.txt` for an engine-level train-validation split. These are not official held-out test-set benchmark results.
+The drift report compares final test-engine windows with training reference
+statistics from `models/reference_stats.json`. It is a lightweight statistical
+check, not a full production monitoring system.
 
 Run configuration:
 
-- Model version: `FD001-win30-stride1-rul125-risk30-scaled-logistic-regression-seed42`
-- Training engines: `80`
-- Validation engines: `20`
-- Training windows: `14,241`
-- Validation windows: `3,490`
-- `window_size=30`
-- `stride=1`
-- `max_rul=125`
-- `risk_threshold=30`
-- `random_state=42`
-- `classifier_max_iter=2000`
-- Classifier: `StandardScaler` followed by `LogisticRegression`
+- Dataset: NASA C-MAPSS FD001
+- Window count: `100`
+- Feature count: `24`
+- `mean_z_threshold=3.0`
+- `std_ratio_threshold=2.0`
+- Generated local file: `reports/metrics/drift_report_FD001.json`
 
-Regression validation metrics:
+Summary:
 
 | Metric | Value |
 | --- | ---: |
-| MAE | 12.0684 |
-| RMSE | 15.9273 |
-| R2 | 0.8545 |
+| flagged_features | 0 |
 
-Failure-risk validation metrics:
+Zero flagged features means no feature exceeded the configured simple mean
+z-shift or standard-deviation ratio thresholds in this local FD001 run.
 
-| Metric | Value |
-| --- | ---: |
-| accuracy | 0.9673 |
-| macro_f1 | 0.9442 |
-| balanced_accuracy | 0.9447 |
-| precision | 0.9068 |
-| recall | 0.9097 |
+## Artifact Policy
 
-Confusion matrix:
-
-```text
-[[2812, 58],
- [56, 564]]
-```
-
-The earlier LogisticRegression convergence warning was addressed by adding `StandardScaler` before `LogisticRegression`. Raw data, processed data, models, and metrics JSON files are generated locally and ignored by Git.
+Raw data, processed data, model bundles, generated metrics JSON files, reports,
+figures, and benchmark outputs remain local and are ignored by Git.
